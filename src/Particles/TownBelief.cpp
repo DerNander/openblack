@@ -46,6 +46,7 @@
 #include "GameClock.h"
 #include "InfoConstants.h"
 #include "Locator.h"
+#include "Magic/Core/Players.h"
 #include "Particles/ParticleManagerState.h"
 #include "Resources/ResourcesInterface.h"
 
@@ -90,7 +91,7 @@ float Rand(float a, float b)
 /// The players' symbols: the local human's cell is a copy of the
 /// ChooseSymbol cell of the profile's "player symbol" (registry, 0 when missing, as on this install), so it is drawn
 /// straight from ChooseSymbol (4 x 4 cells of 64 x 64). Computer players get Lethis/Kazarr/Nemesis .cps greyscale
-/// images there (not done: they use ChooseSymbol cell = player number).
+/// images there: their cells of the players' symbol sheet.
 const Creator& SymbolCreator(int player)
 {
 	static const std::array<Creator, 16> creators = [] {
@@ -105,6 +106,25 @@ const Creator& SymbolCreator(int player)
 		}
 		return c;
 	}();
+	// A god the computer plays shows its own picture: its cell of the players' symbol sheet (3D/PlayerSymbolSheet.h,
+	// Lethis/Kazarr/Nemesis .cps by player number). "PlayersSymbols" is mapped to the sheet by Renderer::RawTextureIds
+	static const std::array<Creator, 8> gods = [] {
+		std::array<Creator, 8> c;
+		for (int i = 0; i < 8; ++i)
+		{
+			c[static_cast<size_t>(i)].kind = Creator::Kind::Sprite;
+			c[static_cast<size_t>(i)].texture = "PlayersSymbols";
+			c[static_cast<size_t>(i)].spritesPerRow = 4;
+			c[static_cast<size_t>(i)].fileOffset = i;
+			c[static_cast<size_t>(i)].numFrames = 1;
+		}
+		return c;
+	}();
+	constexpr int32_t k_ComputerType = 2;
+	if (player > 0 && player < 8 && magic::players::ReadMagicOf(static_cast<PlayerNames>(player)).playerType == k_ComputerType)
+	{
+		return gods[static_cast<size_t>(player)];
+	}
 	constexpr int k_ProfileSymbol = 0;
 	return creators[static_cast<size_t>(player == 0 ? k_ProfileSymbol : std::clamp(player, 0, 15))];
 }

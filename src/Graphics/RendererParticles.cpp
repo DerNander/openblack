@@ -36,6 +36,7 @@
 #include "3D/FrameAnim.h"
 #include "3D/L3DMesh.h"
 #include "3D/L3DSubMesh.h"
+#include "3D/PlayerSymbolSheet.h"
 #include "Camera/Camera.h"
 #include "Creature/CreatureHandGlow.h"
 #include "ECS/Components/CreatureHandGlows.h"
@@ -86,6 +87,14 @@ std::pair<entt::id_type, entt::id_type> Renderer::RawTextureIds(const std::strin
 	if (const auto it = _rawTextureIds.find(texture); it != _rawTextureIds.end())
 	{
 		return it->second;
+	}
+	// the players' symbol sheet is made in memory (3D/PlayerSymbolSheet.h); its texels are colour and alpha alike
+	if (texture == "PlayersSymbols")
+	{
+		const std::pair<entt::id_type, entt::id_type> sheet {player_symbol_sheet::k_TextureId,
+		                                                     player_symbol_sheet::k_TextureId};
+		_rawTextureIds.emplace(texture, sheet);
+		return sheet;
 	}
 	const std::pair<entt::id_type, entt::id_type> ids {entt::hashed_string(("raw/" + texture).c_str()).value(),
 	                                                   entt::hashed_string(("raw/" + texture + "a").c_str()).value()};
