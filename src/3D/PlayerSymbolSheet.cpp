@@ -87,14 +87,10 @@ void MakeComputerSymbols()
 	{
 		return;
 	}
+	// The sheet is kept in memory and the texture made again from it: a bgfx texture created with data is immutable, so
+	// an update of the sheet made empty with data never reached the GPU and no god's symbol was drawn
+	static std::vector<uint8_t> s_sheet(static_cast<size_t>(k_SheetSize) * k_SheetSize * 4, 0);
 	auto& textures = Locator::resources::value().GetTextures();
-	if (!textures.Contains(k_TextureId))
-	{
-		const std::vector<uint8_t> empty(static_cast<size_t>(k_SheetSize) * k_SheetSize * 4, 0);
-		textures.Load(k_TextureId, resources::Texture2DLoader::FromRgbaTag {}, std::string("PlayersSymbols"), k_SheetSize,
-		              k_SheetSize, empty);
-	}
-	auto sheet = textures.Handle(k_TextureId);
 	const auto land = ecs::player_colours::LandNumber();
 	const auto folder = Locator::filesystem::value().GetPath<filesystem::Path::Textures>();
 	for (uint32_t number = 0; number < k_Players; ++number)
@@ -111,10 +107,21 @@ void MakeComputerSymbols()
 		{
 			continue;
 		}
-		sheet->UpdateRegion(CellOrigin(number), glm::u16vec2(k_CellSize, k_CellSize), texels->data(),
-		                    static_cast<uint32_t>(texels->size()));
+		const auto origin = CellOrigin(number);
+		for (uint32_t row = 0; row < k_CellSize; ++row)
+		{
+			const auto src = texels->begin() + static_cast<std::ptrdiff_t>(row * k_CellSize * 4);
+			const auto dst = s_sheet.begin() + static_cast<std::ptrdiff_t>(((origin.y + row) * k_SheetSize + origin.x) * 4);
+			std::copy_n(src, k_CellSize * 4, dst);
+		}
 		SPDLOG_LOGGER_INFO(spdlog::get("game"), "Player symbols: player {} takes {}", number, file);
 	}
+	if (textures.Contains(k_TextureId))
+	{
+		textures.Erase(k_TextureId);
+	}
+	textures.Load(k_TextureId, resources::Texture2DLoader::FromRgbaTag {}, std::string("PlayersSymbols"), k_SheetSize,
+	              k_SheetSize, s_sheet);
 }
 
 } // namespace openblack::player_symbol_sheet
