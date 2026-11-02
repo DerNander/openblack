@@ -1,3 +1,4 @@
+cmake_policy(SET CMP0057 NEW) # IN_LIST in script mode (cmake -P) needs the policy; MSVC builds on Windows stop without it
 # Lists the script API's natives that openblack hasn't written yet, for the editor's Scripts panel.
 #
 # A native is unwritten while its function's body still reports itself as not implemented. The natives are numbered by
